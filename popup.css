@@ -1,0 +1,411 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    width: 380px;
+    padding: 0; /* Padding diatur oleh container di dalamnya */
+    background-color: #f7f7f7;
+    margin: 0;
+}
+
+.container { 
+    text-align: center; 
+}
+
+/* =================================== */
+/* ===== GAYA HEADER MODERN ===== */
+/* =================================== */
+.app-header {
+    background: linear-gradient(90deg, #4285F4, #34A853);
+    color: white;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-title {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+#authContainer {
+    margin: 0;
+}
+
+/* Default: jangan tampilkan blok auth sebelum status siap */
+body:not(.logged-in):not(.logged-out) #loginForm,
+body:not(.logged-in):not(.logged-out) #userInfo { display: none; }
+
+/* Saat logged-in, sembunyikan form login, tampilkan user info */
+body.logged-in #loginForm { display: none; }
+body.logged-in #userInfo { display: flex; }
+
+/* Saat logged-out, kebalikan */
+body.logged-out #loginForm { display: flex; }
+body.logged-out #userInfo { display: none; }
+
+#userInfo { 
+    font-size: 11px;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#userEmail {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#loginForm { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    align-items: center;
+}
+
+#loginForm input { 
+    padding: 8px; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    font-size: 14px; 
+    width: 150px;
+}
+
+#loginButton { 
+    font-size: 13px; 
+    padding: 6px 12px; 
+    background-color: #fff; 
+    color: #4285F4; 
+    font-weight: 600; 
+}
+
+#logoutButton { 
+    font-size: 11px; 
+    padding: 4px 10px; 
+    background-color: rgba(255, 255, 255, 0.2); 
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+/* =================================== */
+/* ===== KONTEN UTAMA ===== */
+/* =================================== */
+#loginNotice, #mainAppContainer {
+    padding: 15px;
+}
+
+.hidden { 
+    display: none !important; 
+}
+
+.notice-board {
+    background-color: #fff; 
+    border: 1px solid #ddd; 
+    border-radius: 6px;
+    padding: 15px; 
+    margin-top: 0;
+}
+.notice-board p { 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+}
+
+#mainAppContainer { 
+    padding-top: 10px; 
+}
+
+#searchQuery {
+    font-size: 14px; 
+    font-weight: normal; 
+    color: #555;
+    background-color: #e8f0fe; 
+    padding: 8px; 
+    border-radius: 6px;
+    margin: 0 0 12px 0; 
+    border: 1px solid #d2e3fc;
+}
+
+/* --- Tata Letak Tombol --- */
+.actions-container {
+    display: flex;
+    gap: 8px;
+}
+.actions-container button {
+    flex: 1; /* Tombol membagi ruang secara merata */
+}
+
+#copyContainer { 
+    display: flex; 
+    gap: 8px; 
+    margin-top: 10px; 
+}
+#copyContainer button {
+    flex: 1;
+}
+
+/* --- Gaya Tombol --- */
+button {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: white;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    margin-top: 0;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+#getLinksButton { background-color: #4285F4; }
+#viewWhitelistButton { background-color: #5bc0de; }
+#resetButton { background-color: #d9534f; flex-shrink: 0; }
+.copy-button.report { background-color: #f0ad4e; }
+.copy-button.links { background-color: #5cb85c; }
+
+/* --- Filter & Hasil --- */
+#filterContainer { margin: 12px 0; }
+#filterInput { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+
+#results { 
+    margin-top: 12px; 
+    text-align: left; 
+    background-color: #fff; 
+    border: 1px solid #ddd; 
+    padding: 10px; 
+    border-radius: 6px; 
+    word-wrap: break-word; 
+    min-height: 100px;
+    overflow-x: hidden;
+}
+.skipped-notice {
+    margin: 8px 0 0 0;
+    font-size: 11px;
+    color: #6c757d;
+    text-align: center;
+}
+.result-item {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+.result-item:last-child { margin-bottom: 0; }
+.result-item.active-entry {
+    border: 2px solid #2c7be5;
+    background-color: #eef5ff;
+}
+.result-item strong {
+    display: block;
+    color: #1f2933;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.result-item .link-url {
+    color: #006621;
+    font-family: monospace;
+    overflow-wrap: break-word;
+    word-break: break-all;
+}
+.error { color: #d93025; font-weight: bold; }
+
+.page-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 600;
+    background-color: #e9ecef;
+    color: #343a40;
+    margin-bottom: 8px;
+}
+
+.link-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.link-row .link-url { flex-grow: 1; display: block; }
+.link-row .whitelist-status {
+    display: none;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 600;
+    background-color: #e9ecef;
+    color: #495057;
+    white-space: nowrap;
+}
+.link-row .whitelist-status.active { display: inline-flex; }
+.link-row .whitelist-status.progress { background-color: #d1ecf1; color: #0c5460; }
+.link-row .whitelist-status.success { background-color: #d4edda; color: #155724; }
+.link-row .whitelist-status.info { background-color: #e2e3e5; color: #343a40; }
+.link-row .whitelist-status.error { background-color: #f8d7da; color: #721c24; }
+.action-icon {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; padding: 0; font-size: 14px;
+    line-height: 1; border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: gray; color: white; cursor: pointer;
+}
+.action-icon:hover { opacity: 0.8; transform: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.action-icon:disabled { opacity: 0.6; cursor: not-allowed; }
+.visit-link-button { background-color: #6c757d; font-size: 16px; }
+.visit-link-button[data-variant="main"] { background-color: #0d6efd; }
+.visit-link-button[data-variant="amp"] { background-color: #fd7e14; }
+.whitelist-button { background-color: #f0ad4e; }
+
+.manual-links {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #ddd;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.manual-links-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+.manual-links-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c757d;
+    margin-right: 2px;
+}
+.manual-link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #eef5ff;
+    color: #2c7be5;
+    border-radius: 999px;
+    padding: 2px 4px 2px 8px;
+    font-size: 11px;
+    font-family: monospace;
+    max-width: 100%;
+}
+.manual-link-url {
+    overflow-wrap: anywhere;
+}
+.manual-link-remove {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    line-height: 1;
+    font-size: 12px;
+    border-radius: 50%;
+    background-color: #2c7be5;
+    color: white;
+    cursor: pointer;
+}
+.action-icon.is-loading { background-color: #17a2b8; }
+.action-icon.is-success { background-color: #28a745; }
+.action-icon.is-info { background-color: #6c757d; }
+.action-icon.is-error { background-color: #d9534f; }
+
+
+/* --- Tampilan Whitelist --- */
+#whitelistSearchInput { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; margin-bottom: 15px; }
+.bulk-add-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; text-align: left; }
+.bulk-add-section h4 { margin-top: 0; margin-bottom: 10px; }
+#bulkWhitelistInput { width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; font-family: monospace; box-sizing: border-box; margin-bottom: 8px; }
+.bulk-add-controls { display: flex; gap: 8px; align-items: center; }
+#bulkQueryInput { flex-grow: 1; border: 1px solid #ccc; border-radius: 6px; padding: 8px; font-size: 13px; margin: 0; }
+#bulkAddButton { flex-shrink: 0; background-color: #337ab7; }
+.accordion-header { background-color: #f0f0f0; color: #444; padding: 10px; width: 100%; text-align: left; font-size: 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; margin-top: 5px; }
+.accordion-header:hover, .accordion-header.active { background-color: #ddd; }
+.accordion-header::after { content: "\25b6"; font-size: 10px; color: #777; }
+.accordion-header.active::after { content: "\25bc"; }
+.accordion-content { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; border-left: 1px solid #eee; border-right: 1px solid #eee; }
+.whitelist-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+.whitelist-item:last-child { border-bottom: none; }
+.whitelist-item span { flex-grow: 1; font-size: 12px; font-family: monospace; color: #555; }
+.remove-whitelist-button { flex-shrink: 0; background-color: #d9534f; font-size: 12px; padding: 4px 8px; width: auto; line-height: 1; color: white; border-radius: 4px; }
+
+/* --- Logika Tampilan Login/Logout --- */
+.logged-out #userInfo,
+.logged-out #mainAppContainer {
+    display: none;
+}
+.logged-in #loginForm,
+.logged-in #loginNotice {
+    display: none;
+}
+
+#loadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    backdrop-filter: blur(2px); /* Efek blur modern */
+}
+
+.spinner {
+    border: 4px solid #f3f3f3; /* Abu-abu terang */
+    border-top: 4px solid #4285F4; /* Biru Google */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+#loadingMessage {
+    color: #333;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.4;
+    max-width: 320px;
+    padding: 0 12px;
+    border-radius: 6px;
+}
+
+/* Variasi status pesan */
+.loading-success { color: #1a7f37; }
+.loading-error { color: #d93025; }
+
+/* Animasi untuk spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* --- Scrollbar Modern --- */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
