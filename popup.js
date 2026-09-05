@@ -21,6 +21,7 @@ import { normalizeUrl, extractHostname, hostInSet } from './src/utils/url.js';
 import { scrapeDataOnPage } from './src/core/scraper.js';
 import { scanPageLinksOnPage } from './src/core/scanPageLinks.js';
 import { readPageMetaOnPage } from './src/core/readPageMeta.js';
+import { compressImage } from './src/utils/image.js';
 import { dom, setLoading, toggleAuthUI, renderResults, setUserEmail } from './src/ui/view.js';
 
 let fullScrapedData = null;
@@ -58,6 +59,7 @@ function showResults(data) {
         onClearPageLinks: clearPageLinks,
         onMainOverrideChange: setMainOverride,
         onGrabMeta: grabMeta,
+        onScreenshotPick: handleScreenshotPick,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -223,6 +225,53 @@ async function grabMeta(entryId, url) {
     alert(summary);
 }
 
+async function handleScreenshotPick(entryId, file) {
+    if (!file) return;
+    const cards = Array.from(dom.resultsDiv.querySelectorAll('.result-item'));
+    const card = cards.find((c) => c.dataset.entryId === entryId);
+    const dropEl = card ? card.querySelector('.shot-drop') : null;
+
+    try {
+        if (dropEl) dropEl.textContent = 'Mengompres...';
+        const base64 = await compressImage(file);
+
+        if (dropEl) dropEl.textContent = 'Mengupload...';
+        const res = await chrome.runtime.sendMessage({ type: 'uploadScreenshot', entryId, base64 });
+
+        if (res && res.ok) {
+            const { manualLinks } = await chrome.storage.local.get('manualLinks');
+            manualLinksState = manualLinks || {};
+            showResults(lastRenderedData);
+        } else {
+            alert((res && res.error) || 'Upload gagal.');
+            showResults(lastRenderedData);
+        }
+    } catch (err) {
+        alert(err.message || 'Gagal memproses screenshot.');
+        showResults(lastRenderedData);
+    }
+}
+
+async function loadImgbbKeyStatus() {
+    const { imgbbKey } = await chrome.storage.local.get('imgbbKey');
+    dom.imgbbKeyStatus.textContent = imgbbKey ? 'Key tersimpan' : '';
+}
+
+async function saveImgbbKey() {
+    const value = (dom.imgbbKeyInput.value || '').trim();
+    if (!value) {
+        await chrome.storage.local.remove('imgbbKey');
+        dom.imgbbKeyStatus.textContent = 'Key dihapus';
+        return;
+    }
+    await chrome.storage.local.set({ imgbbKey: value });
+    dom.imgbbKeyInput.value = '';
+    dom.imgbbKeyStatus.textContent = 'Key tersimpan';
+}
+
+dom.imgbbKeySave.addEventListener('click', saveImgbbKey);
+loadImgbbKeyStatus();
+
 async function clearPageLinks(entryId) {
     if (!entryId) return;
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
@@ -328,6 +377,7 @@ function copyReport() {
                 `Link Button : ${joinOrNone(manual.linkButton)}`,
                 `Shortlink : ${joinOrNone(manual.shortlink)}`,
                 `Link Tujuan : ${joinOrNone(manual.linkTujuan)}`,
+                `Screenshot : ${manual.screenshot || 'Tidak ditemukan'}`,
                 `Engine : `,
             ].join('\n');
         });

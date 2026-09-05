@@ -15,6 +15,7 @@
     "*://*.google.co.id/*",
     "https://saligia.app/*",
     "https://api.saligia.app/*",
+    "https://api.imgbb.com/*",
     "<all_urls>"
   ],
   "background": {

@@ -7,6 +7,9 @@ export const dom = {
     searchQueryDisplay: document.getElementById('searchQuery'),
     resetButton: document.getElementById('resetButton'),
     scanPageLinksButton: document.getElementById('scanPageLinksButton'),
+    imgbbKeyInput: document.getElementById('imgbbKeyInput'),
+    imgbbKeySave: document.getElementById('imgbbKeySave'),
+    imgbbKeyStatus: document.getElementById('imgbbKeyStatus'),
     loginButton: document.getElementById('loginButton'),
     logoutButton: document.getElementById('logoutButton'),
     userInfo: document.getElementById('userInfo'),
@@ -114,7 +117,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta, onScreenshotPick }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -165,6 +168,14 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                 <input type="text" class="amp-override-input"
                        placeholder="Isi AMP manual kalau tersembunyi..."
                        value="${(manualLinks[linkItem.id] && manualLinks[linkItem.id].ampOverride) || ''}">
+            </div>
+            <div class="shot-row">
+                <input type="file" class="shot-file" accept="image/*" style="display:none">
+                <div class="shot-drop" tabindex="0" title="Klik untuk pilih file, atau tekan Ctrl+V setelah klik di sini">
+                    ${(manualLinks[linkItem.id] && manualLinks[linkItem.id].screenshot)
+                        ? `<a href="${manualLinks[linkItem.id].screenshot}" target="_blank" class="shot-link">${manualLinks[linkItem.id].screenshot}</a>`
+                        : 'Klik / paste screenshot di sini'}
+                </div>
             </div>
             ${renderManualLinksSection(linkItem.id, manualLinks[linkItem.id])}
         `;
@@ -232,6 +243,37 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    if (typeof onScreenshotPick === 'function') {
+        dom.resultsDiv.querySelectorAll('.shot-drop').forEach((drop) => {
+            drop.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (event.target.closest('.shot-link')) return;
+                const fileInput = drop.parentElement.querySelector('.shot-file');
+                if (fileInput) fileInput.click();
+            });
+            drop.addEventListener('paste', (event) => {
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                const items = event.clipboardData ? Array.from(event.clipboardData.items) : [];
+                const imageItem = items.find((item) => item.type && item.type.startsWith('image/'));
+                if (!imageItem) return;
+                event.preventDefault();
+                const file = imageItem.getAsFile();
+                if (file) onScreenshotPick(entryId, file);
+            });
+        });
+        dom.resultsDiv.querySelectorAll('.shot-file').forEach((input) => {
+            input.addEventListener('change', (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                const file = event.target.files && event.target.files[0];
+                if (file) onScreenshotPick(entryId, file);
+            });
+        });
+    }
     if (typeof onAssignLink === 'function') {
         dom.resultsDiv.querySelectorAll('.assign-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -267,7 +309,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button, .shot-drop, .shot-file, .shot-link')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });

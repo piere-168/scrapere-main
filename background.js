@@ -41,7 +41,7 @@ function flashBadge(text, color, durationMs) {
 async function saveManualLink(entryId, field, url) {
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
-    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [], screenshot: null };
     if (!Array.isArray(entry[field])) entry[field] = [];
     if (!entry[field].includes(url)) {
         entry[field].push(url);
@@ -49,6 +49,50 @@ async function saveManualLink(entryId, field, url) {
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
 }
+
+async function handleUpload(entryId, base64) {
+    try {
+        const { imgbbKey } = await chrome.storage.local.get('imgbbKey');
+        if (!imgbbKey) {
+            return { ok: false, error: 'API key ImgBB belum diisi.' };
+        }
+
+        const formData = new FormData();
+        formData.append('key', imgbbKey);
+        formData.append('image', base64);
+
+        const response = await fetch('https://api.imgbb.com/1/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        const json = await response.json();
+
+        if (!response.ok || !json.success) {
+            const errorMessage = (json.error && json.error.message) || 'Upload gagal';
+            return { ok: false, error: errorMessage };
+        }
+
+        const url = json.data.url;
+        const { manualLinks } = await chrome.storage.local.get('manualLinks');
+        const current = manualLinks || {};
+        const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [], screenshot: null };
+        entry.screenshot = url;
+        current[entryId] = entry;
+        await chrome.storage.local.set({ manualLinks: current });
+
+        flashBadge('OK', '#188038', 1500);
+        return { ok: true, url };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg && msg.type === 'uploadScreenshot') {
+        handleUpload(msg.entryId, msg.base64).then(sendResponse);
+        return true;
+    }
+});
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const menuItem = MENU_ITEMS.find((item) => item.id === info.menuItemId);
