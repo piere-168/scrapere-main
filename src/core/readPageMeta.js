@@ -18,11 +18,19 @@ export function readPageMetaOnPage() {
         .map((link) => resolveHref(link.getAttribute('href')))
         .filter((href) => href && (href.startsWith('http://') || href.startsWith('https://')));
 
+    let isAmp = false;
+    try {
+        isAmp = !!document.querySelector('html[amp], html[⚡]');
+    } catch (err) {
+        isAmp = document.documentElement.hasAttribute('amp') || document.documentElement.hasAttribute('⚡');
+    }
+
     return {
         finalUrl: window.location.href,
         title: document.title,
         canonical,
         amphtml,
         alternates,
+        isAmp,
     };
 }

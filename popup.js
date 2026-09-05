@@ -57,8 +57,7 @@ function showResults(data) {
         onAssignLink: assignLink,
         onClearPageLinks: clearPageLinks,
         onMainOverrideChange: setMainOverride,
-        onGrabCanonical: grabCanonical,
-        onGrabAmphtml: grabAmphtml,
+        onGrabMeta: grabMeta,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -182,69 +181,46 @@ async function fetchPageMeta(url) {
     }
 }
 
-function isGoogleRedirectUrl(url) {
-    return url.includes('google.com/') || url.includes('google.co.id/');
+function isStuckOnGoogleUrl(url) {
+    return url.includes('/search?') || url.includes('/goto?url=');
 }
 
-function computeRealUrl(entryId, meta) {
-    if (!meta || !meta.finalUrl || isGoogleRedirectUrl(meta.finalUrl)) return null;
-    const originalLink = lastRenderedData && Array.isArray(lastRenderedData.links)
-        ? lastRenderedData.links.find((l) => l.id === entryId)
-        : null;
-    if (originalLink && meta.finalUrl === originalLink.mainLink) return null;
+function computeRealUrl(meta) {
+    if (!meta || !meta.finalUrl || isStuckOnGoogleUrl(meta.finalUrl)) return null;
     return meta.finalUrl;
 }
 
-async function grabCanonical(entryId, ampUrl) {
-    if (!entryId || !ampUrl) return;
-    const meta = await fetchPageMeta(ampUrl);
-    const realUrl = computeRealUrl(entryId, meta);
-    const canonical = (meta && (meta.canonical || (Array.isArray(meta.alternates) && meta.alternates[0]))) || null;
-
-    if (!canonical && !realUrl) {
-        alert('Canonical tidak ditemukan di halaman itu.');
+async function grabMeta(entryId, url) {
+    if (!entryId || !url) return;
+    const meta = await fetchPageMeta(url);
+    if (!meta) {
+        alert('Halaman tidak bisa dibaca.');
         return;
     }
+
+    const realUrl = computeRealUrl(meta);
 
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
     const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
-    if (realUrl) entry.realUrl = realUrl;
-    if (canonical) entry.mainOverride = canonical;
+
+    let summary;
+    if (meta.isAmp) {
+        if (realUrl) entry.ampOverride = realUrl;
+        const canonical = meta.canonical || (Array.isArray(meta.alternates) && meta.alternates[0]) || null;
+        if (canonical) entry.mainOverride = canonical;
+        summary = 'Halaman AMP terdeteksi. Main Link & Link AMP sudah diisi.';
+    } else {
+        if (realUrl) entry.realUrl = realUrl;
+        if (meta.amphtml) entry.ampOverride = meta.amphtml;
+        summary = 'Halaman biasa. URL asli dicatat.';
+    }
+
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
     manualLinksState = current;
-
-    if (!canonical) {
-        alert('Canonical tidak ditemukan, tapi URL asli halaman berhasil dicatat.');
-    }
     showResults(lastRenderedData);
-}
-
-async function grabAmphtml(entryId, mainUrl) {
-    if (!entryId || !mainUrl) return;
-    const meta = await fetchPageMeta(mainUrl);
-    const realUrl = computeRealUrl(entryId, meta);
-    const amphtml = meta && meta.amphtml ? meta.amphtml : null;
-
-    if (!amphtml && !realUrl) {
-        alert('Link AMP tidak ditemukan di halaman itu.');
-        return;
-    }
-
-    const { manualLinks } = await chrome.storage.local.get('manualLinks');
-    const current = manualLinks || {};
-    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
-    if (realUrl) entry.realUrl = realUrl;
-    if (amphtml) entry.ampOverride = amphtml;
-    current[entryId] = entry;
-    await chrome.storage.local.set({ manualLinks: current });
-    manualLinksState = current;
-
-    if (!amphtml) {
-        alert('Link AMP tidak ditemukan, tapi URL asli halaman berhasil dicatat.');
-    }
-    showResults(lastRenderedData);
+    alert(summary);
 }
 
 async function clearPageLinks(entryId) {
