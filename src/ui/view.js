@@ -86,6 +86,21 @@ function renderManualLinksSection(entryId, manualEntry) {
                     </span>`;
                 })
                 .join('');
+
+            if (field === 'pageLinks') {
+                return `
+                <div class="manual-links-group scan-group">
+                    <button type="button" class="scan-toggle" aria-expanded="false">
+                        <span class="scan-toggle-label">${MANUAL_FIELD_LABELS[field]}</span>
+                        <span class="scan-count">${urls.length}</span>
+                    </button>
+                    <div class="scan-body hidden">
+                        ${chips}
+                        <button type="button" class="scan-clear-all">Buang Semua</button>
+                    </div>
+                </div>`;
+            }
+
             return `
                 <div class="manual-links-group">
                     <span class="manual-links-label">${MANUAL_FIELD_LABELS[field]}</span>
@@ -99,7 +114,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -192,10 +207,31 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    dom.resultsDiv.querySelectorAll('.scan-toggle').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const group = button.closest('.scan-group');
+            const body = group ? group.querySelector('.scan-body') : null;
+            if (!body) return;
+            body.classList.toggle('hidden');
+            button.setAttribute('aria-expanded', body.classList.contains('hidden') ? 'false' : 'true');
+        });
+    });
+    if (typeof onClearPageLinks === 'function') {
+        dom.resultsDiv.querySelectorAll('.scan-clear-all').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                onClearPageLinks(entryId);
+            });
+        });
+    }
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });

@@ -54,6 +54,7 @@ function showResults(data) {
         onRemoveManualLink: removeManualLink,
         onAmpOverrideChange: setAmpOverride,
         onAssignLink: assignLink,
+        onClearPageLinks: clearPageLinks,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -114,6 +115,19 @@ async function setAmpOverride(entryId, value) {
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
     manualLinksState = current;
+}
+
+async function clearPageLinks(entryId) {
+    if (!entryId) return;
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId];
+    if (!entry) return;
+    entry.pageLinks = [];
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
+    showResults(lastRenderedData);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {

@@ -330,6 +330,15 @@ button:hover {
 .assign-btn[data-target="linkButton"] { background-color: #0d6efd; }
 .assign-btn[data-target="shortlink"] { background-color: #6f42c1; }
 .assign-btn[data-target="linkTujuan"] { background-color: #198754; }
+.scan-group { display: block; }
+.scan-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 6px; padding: 5px 8px; background-color: #eef1f4; border: 1px solid #dde2e7; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; color: #444; text-align: left; }
+.scan-toggle:hover { background-color: #e2e6ea; }
+.scan-toggle::after { content: "\25b6"; font-size: 8px; color: #777; }
+.scan-toggle[aria-expanded="true"]::after { content: "\25bc"; }
+.scan-count { flex-grow: 1; text-align: right; font-weight: normal; color: #777; }
+.scan-body { padding-top: 6px; }
+.scan-body.hidden { display: none; }
+.scan-clear-all { display: block; margin-top: 8px; padding: 4px 10px; background-color: #d9534f; color: #fff; border: none; border-radius: 4px; font-size: 10px; cursor: pointer; }
 .action-icon.is-loading { background-color: #17a2b8; }
 .action-icon.is-success { background-color: #28a745; }
 .action-icon.is-info { background-color: #6c757d; }
