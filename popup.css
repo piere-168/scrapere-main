@@ -342,6 +342,7 @@ button:hover {
 .grab-canonical-button { background-color: #495057; }
 .grab-amp-button { background-color: #b5651d; }
 .main-override-input { width: 100%; padding: 5px 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 11px; font-family: monospace; box-sizing: border-box; margin-bottom: 4px; }
+.real-url-note { display: block; margin: 2px 0 4px; font-size: 10px; font-family: monospace; color: #6c757d; word-break: break-all; }
 .action-icon.is-loading { background-color: #17a2b8; }
 .action-icon.is-success { background-color: #28a745; }
 .action-icon.is-info { background-color: #6c757d; }

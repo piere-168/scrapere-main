@@ -182,11 +182,26 @@ async function fetchPageMeta(url) {
     }
 }
 
+function isGoogleRedirectUrl(url) {
+    return url.includes('google.com/') || url.includes('google.co.id/');
+}
+
+function computeRealUrl(entryId, meta) {
+    if (!meta || !meta.finalUrl || isGoogleRedirectUrl(meta.finalUrl)) return null;
+    const originalLink = lastRenderedData && Array.isArray(lastRenderedData.links)
+        ? lastRenderedData.links.find((l) => l.id === entryId)
+        : null;
+    if (originalLink && meta.finalUrl === originalLink.mainLink) return null;
+    return meta.finalUrl;
+}
+
 async function grabCanonical(entryId, ampUrl) {
     if (!entryId || !ampUrl) return;
     const meta = await fetchPageMeta(ampUrl);
+    const realUrl = computeRealUrl(entryId, meta);
     const canonical = (meta && (meta.canonical || (Array.isArray(meta.alternates) && meta.alternates[0]))) || null;
-    if (!canonical) {
+
+    if (!canonical && !realUrl) {
         alert('Canonical tidak ditemukan di halaman itu.');
         return;
     }
@@ -194,17 +209,25 @@ async function grabCanonical(entryId, ampUrl) {
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
     const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
-    entry.mainOverride = canonical;
+    if (realUrl) entry.realUrl = realUrl;
+    if (canonical) entry.mainOverride = canonical;
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
     manualLinksState = current;
+
+    if (!canonical) {
+        alert('Canonical tidak ditemukan, tapi URL asli halaman berhasil dicatat.');
+    }
     showResults(lastRenderedData);
 }
 
 async function grabAmphtml(entryId, mainUrl) {
     if (!entryId || !mainUrl) return;
     const meta = await fetchPageMeta(mainUrl);
-    if (!meta || !meta.amphtml) {
+    const realUrl = computeRealUrl(entryId, meta);
+    const amphtml = meta && meta.amphtml ? meta.amphtml : null;
+
+    if (!amphtml && !realUrl) {
         alert('Link AMP tidak ditemukan di halaman itu.');
         return;
     }
@@ -212,10 +235,15 @@ async function grabAmphtml(entryId, mainUrl) {
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
     const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
-    entry.ampOverride = meta.amphtml;
+    if (realUrl) entry.realUrl = realUrl;
+    if (amphtml) entry.ampOverride = amphtml;
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
     manualLinksState = current;
+
+    if (!amphtml) {
+        alert('Link AMP tidak ditemukan, tapi URL asli halaman berhasil dicatat.');
+    }
     showResults(lastRenderedData);
 }
 
@@ -315,8 +343,9 @@ function copyReport() {
             return [
                 `Pelaku Phising : ${link.title || 'Tidak ditemukan'}`,
                 `Korban Phising : ${scrapeData.query}`,
-                `Main Link : ${manual.mainOverride || link.mainLink}`,
-                ...(manual.mainOverride ? [`Link Perantara : ${link.mainLink}`] : []),
+                `Main Link : ${manual.mainOverride || manual.realUrl || link.mainLink}`,
+                ...(manual.realUrl && manual.realUrl !== link.mainLink ? [`URL Asli SERP : ${manual.realUrl}`] : []),
+                ...(manual.mainOverride ? [`Link Perantara : ${manual.realUrl || link.mainLink}`] : []),
                 `Link AMP : ${manual.ampOverride || link.ampLink || 'Tidak ditemukan'}`,
                 `Posisi : Mobile SERP halaman ${link.page}, rank ${link.rank} (urutan ke-${link.rankGlobal})`,
                 `Waktu Cek : ${checkedAt}`,
