@@ -49,9 +49,14 @@ export function scanPageLinksOnPage() {
 
     const JUNK_HOSTNAME_PATTERNS = [
         'cloudfront.net', '-demo.', 'demo-', '.pg-demo', 'spade-event', 'fastspin', 'jlfafafa',
+        'ambengine', '10e20.net',
     ];
     const JUNK_URL_PATTERNS = ['gameid=', 'playmode=', 'casinoid=', 'clienttype=', '/launcher/'];
     const JUNK_EXACT_TEXTS = ['coba', 'demo', 'main sekarang', 'play now'];
+    const JUNK_IMG_ALT_KEYWORDS = [
+        'slot', 'casino', 'poker', 'sport', 'turnamen', 'tournament',
+        'jackpot', 'provider', 'game', 'rtp live',
+    ];
 
     const isJunkVendor = (hostname, fullUrl, text) => {
         const lowerHost = hostname.toLowerCase();
@@ -60,6 +65,22 @@ export function scanPageLinksOnPage() {
         if (JUNK_URL_PATTERNS.some((p) => lowerUrl.includes(p))) return true;
         const lowerText = (text || '').toLowerCase();
         if (JUNK_EXACT_TEXTS.includes(lowerText)) return true;
+        return false;
+    };
+
+    const isImgOnlyJunk = (anchor, imgEl) => {
+        if (imgEl) {
+            const src = (imgEl.getAttribute('src') || '').toLowerCase();
+            if (src.includes('/games/')) return true;
+            const alt = (imgEl.getAttribute('alt') || '').toLowerCase();
+            if (JUNK_IMG_ALT_KEYWORDS.some((k) => alt.includes(k))) return true;
+        }
+        try {
+            const rect = anchor.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return true;
+        } catch (err) {
+            // can't measure, treat as not junk
+        }
         return false;
     };
 
@@ -94,13 +115,16 @@ export function scanPageLinksOnPage() {
             parsedUrl.search === window.location.search;
         if (isSamePageFragment) continue;
 
-        const hasImg = Boolean(anchor.querySelector('img'));
+        const imgEl = anchor.querySelector('img');
+        const hasImg = Boolean(imgEl);
         const rawText = normalizeText(anchor.innerText);
         const url = parsedUrl.href;
 
-        const passesActionOrImg = matchesActionText(rawText) || hasImg;
+        const matchedAction = matchesActionText(rawText);
+        const passesActionOrImg = matchedAction || hasImg;
         if (!passesActionOrImg) continue;
         if (isJunkVendor(parsedUrl.hostname, url, rawText)) continue;
+        if (!matchedAction && hasImg && isImgOnlyJunk(anchor, imgEl)) continue;
 
         const text = truncate(rawText, 80);
         const kind = getKind(anchor);
