@@ -20,6 +20,7 @@ import {
 import { normalizeUrl, extractHostname, hostInSet } from './src/utils/url.js';
 import { scrapeDataOnPage } from './src/core/scraper.js';
 import { scanPageLinksOnPage } from './src/core/scanPageLinks.js';
+import { readPageMetaOnPage } from './src/core/readPageMeta.js';
 import { dom, setLoading, toggleAuthUI, renderResults, setUserEmail } from './src/ui/view.js';
 
 let fullScrapedData = null;
@@ -55,6 +56,9 @@ function showResults(data) {
         onAmpOverrideChange: setAmpOverride,
         onAssignLink: assignLink,
         onClearPageLinks: clearPageLinks,
+        onMainOverrideChange: setMainOverride,
+        onGrabCanonical: grabCanonical,
+        onGrabAmphtml: grabAmphtml,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -115,6 +119,104 @@ async function setAmpOverride(entryId, value) {
     current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
     manualLinksState = current;
+}
+
+async function setMainOverride(entryId, value) {
+    if (!entryId) return;
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
+    if (value) {
+        entry.mainOverride = value;
+    } else {
+        delete entry.mainOverride;
+    }
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
+}
+
+async function fetchPageMeta(url) {
+    let tabId = null;
+    try {
+        const tab = await chrome.tabs.create({ url, active: false });
+        tabId = tab.id;
+
+        await new Promise((resolve) => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeoutId);
+                resolve();
+            };
+            const listener = (updatedTabId, changeInfo) => {
+                if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                    finish();
+                }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+            const timeoutId = setTimeout(finish, 20000);
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const injectionResults = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: readPageMetaOnPage,
+        });
+
+        return injectionResults?.[0]?.result || null;
+    } catch (err) {
+        console.error('Gagal membaca meta halaman:', err);
+        return null;
+    } finally {
+        if (tabId !== null) {
+            try {
+                await chrome.tabs.remove(tabId);
+            } catch (removeErr) {
+                console.warn('Gagal menutup tab sementara:', removeErr);
+            }
+        }
+    }
+}
+
+async function grabCanonical(entryId, ampUrl) {
+    if (!entryId || !ampUrl) return;
+    const meta = await fetchPageMeta(ampUrl);
+    const canonical = (meta && (meta.canonical || (Array.isArray(meta.alternates) && meta.alternates[0]))) || null;
+    if (!canonical) {
+        alert('Canonical tidak ditemukan di halaman itu.');
+        return;
+    }
+
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
+    entry.mainOverride = canonical;
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
+    showResults(lastRenderedData);
+}
+
+async function grabAmphtml(entryId, mainUrl) {
+    if (!entryId || !mainUrl) return;
+    const meta = await fetchPageMeta(mainUrl);
+    if (!meta || !meta.amphtml) {
+        alert('Link AMP tidak ditemukan di halaman itu.');
+        return;
+    }
+
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
+    entry.ampOverride = meta.amphtml;
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
+    showResults(lastRenderedData);
 }
 
 async function clearPageLinks(entryId) {
@@ -213,7 +315,8 @@ function copyReport() {
             return [
                 `Pelaku Phising : ${link.title || 'Tidak ditemukan'}`,
                 `Korban Phising : ${scrapeData.query}`,
-                `Main Link : ${link.mainLink}`,
+                `Main Link : ${manual.mainOverride || link.mainLink}`,
+                ...(manual.mainOverride ? [`Link Perantara : ${link.mainLink}`] : []),
                 `Link AMP : ${manual.ampOverride || link.ampLink || 'Tidak ditemukan'}`,
                 `Posisi : Mobile SERP halaman ${link.page}, rank ${link.rank} (urutan ke-${link.rankGlobal})`,
                 `Waktu Cek : ${checkedAt}`,

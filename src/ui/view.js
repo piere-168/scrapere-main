@@ -114,7 +114,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabCanonical, onGrabAmphtml }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -144,6 +144,8 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                 <button class="action-icon visit-link-button" data-variant="main" data-url="${linkItem.mainLink}" title="Kunjungi" aria-label="Kunjungi">&#128640;</button>
                 ${linkItem.serpHref ? `<button class="action-icon visit-link-button" data-variant="serp" data-url="${linkItem.serpHref}" title="Buka via SERP" aria-label="Buka via SERP">&#127760;</button>` : ''}
                 <button class="action-icon whitelist-button" data-url="${linkItem.mainLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
+                <button class="action-icon grab-amp-button" data-url="${linkItem.mainLink}" title="Ambil link AMP dari halaman ini" aria-label="Ambil AMP">&#128229;</button>
+                <button class="action-icon grab-canonical-button" data-url="${linkItem.mainLink}" title="Ambil canonical dari halaman ini" aria-label="Ambil canonical">&#128230;</button>
                 <span class="whitelist-status"></span>
             </div>
             ${linkItem.ampLink ? `
@@ -151,8 +153,14 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                     <span class="link-url">${linkItem.ampLink}</span>
                     <button class="action-icon visit-link-button" data-variant="amp" data-url="${linkItem.ampLink}" title="Kunjungi AMP" aria-label="Kunjungi AMP">&#9889;</button>
                     <button class="action-icon whitelist-button" data-url="${linkItem.ampLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
+                    <button class="action-icon grab-canonical-button" data-url="${linkItem.ampLink}" title="Ambil canonical jadi Main Link" aria-label="Ambil canonical">&#128230;</button>
                     <span class="whitelist-status"></span>
                 </div>` : ''}
+            <div class="amp-override-row">
+                <input type="text" class="main-override-input"
+                       placeholder="Isi Main Link manual (dari canonical)..."
+                       value="${(manualLinks[linkItem.id] && manualLinks[linkItem.id].mainOverride) || ''}">
+            </div>
             <div class="amp-override-row">
                 <input type="text" class="amp-override-input"
                        placeholder="Isi AMP manual kalau tersembunyi..."
@@ -196,6 +204,52 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    if (typeof onMainOverrideChange === 'function') {
+        dom.resultsDiv.querySelectorAll('.main-override-input').forEach((input) => {
+            input.addEventListener('change', (event) => {
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                onMainOverrideChange(entryId, event.target.value.trim());
+            });
+        });
+    }
+    if (typeof onGrabCanonical === 'function') {
+        dom.resultsDiv.querySelectorAll('.grab-canonical-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                button.classList.add('is-loading');
+                button.disabled = true;
+                try {
+                    await onGrabCanonical(entryId, event.target.dataset.url);
+                } finally {
+                    button.classList.remove('is-loading');
+                    button.disabled = false;
+                }
+            });
+        });
+    }
+    if (typeof onGrabAmphtml === 'function') {
+        dom.resultsDiv.querySelectorAll('.grab-amp-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                button.classList.add('is-loading');
+                button.disabled = true;
+                try {
+                    await onGrabAmphtml(entryId, event.target.dataset.url);
+                } finally {
+                    button.classList.remove('is-loading');
+                    button.disabled = false;
+                }
+            });
+        });
+    }
     if (typeof onAssignLink === 'function') {
         dom.resultsDiv.querySelectorAll('.assign-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -231,7 +285,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-canonical-button, .grab-amp-button')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });

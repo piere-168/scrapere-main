@@ -14,7 +14,8 @@
     "*://*.google.com/*",
     "*://*.google.co.id/*",
     "https://saligia.app/*",
-    "https://api.saligia.app/*"
+    "https://api.saligia.app/*",
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
