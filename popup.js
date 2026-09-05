@@ -169,6 +169,7 @@ function copyReport() {
                 `Link Button : ${joinOrNone(manual.linkButton)}`,
                 `Shortlink : ${joinOrNone(manual.shortlink)}`,
                 `Link Tujuan : ${joinOrNone(manual.linkTujuan)}`,
+                `AMP Manual : ${joinOrNone(manual.ampManual)}`,
                 `Engine : `,
             ].join('\n');
         });

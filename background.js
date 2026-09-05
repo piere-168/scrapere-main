@@ -7,6 +7,8 @@ const MENU_ITEMS = [
     { id: 'serpLinkCopier_linkButton_page', field: 'linkButton', source: 'page', title: 'Catat URL halaman ini sebagai Link Button' },
     { id: 'serpLinkCopier_shortlink_page', field: 'shortlink', source: 'page', title: 'Catat URL halaman ini sebagai Shortlink' },
     { id: 'serpLinkCopier_linkTujuan_page', field: 'linkTujuan', source: 'page', title: 'Catat URL halaman ini sebagai Link Tujuan' },
+    { id: 'serpLinkCopier_ampManual_link', field: 'ampManual', source: 'link', title: 'Catat sebagai AMP Manual' },
+    { id: 'serpLinkCopier_ampManual_page', field: 'ampManual', source: 'page', title: 'Catat URL halaman ini sebagai AMP Manual' },
 ];
 
 function registerContextMenus() {
@@ -41,7 +43,7 @@ function flashBadge(text, color, durationMs) {
 async function saveManualLink(entryId, field, url) {
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
-    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [] };
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], ampManual: [] };
     if (!Array.isArray(entry[field])) entry[field] = [];
     if (!entry[field].includes(url)) {
         entry[field].push(url);

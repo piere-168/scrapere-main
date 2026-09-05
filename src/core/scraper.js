@@ -229,7 +229,14 @@ export async function scrapeDataOnPage() {
         const batch = parseInt(anchor.getAttribute('data-scrape-batch'), 10) || 1;
         const id = buildEntryId(mainLink);
 
-        scrapedData.push({ id, title, mainLink, ampLink, batch });
+        const rawSerpHref = anchor.getAttribute('href');
+        let serpHref = null;
+        if (rawSerpHref) {
+            try { serpHref = new URL(rawSerpHref, window.location.href).href; }
+            catch (err) { serpHref = null; }
+        }
+
+        scrapedData.push({ id, title, mainLink, ampLink, serpHref, batch });
     }
 
     const RESULTS_PER_PAGE = 10;

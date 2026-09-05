@@ -55,6 +55,7 @@ const MANUAL_FIELD_LABELS = {
     linkButton: 'Link Button',
     shortlink: 'Shortlink',
     linkTujuan: 'Link Tujuan',
+    ampManual: 'AMP Manual',
 };
 
 function renderManualLinksSection(entryId, manualEntry) {
@@ -111,6 +112,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             <div class="link-row">
                 <span class="link-url">${linkItem.mainLink}</span>
                 <button class="action-icon visit-link-button" data-variant="main" data-url="${linkItem.mainLink}" title="Kunjungi" aria-label="Kunjungi">&#128640;</button>
+                ${linkItem.serpHref ? `<button class="action-icon visit-link-button" data-variant="serp" data-url="${linkItem.serpHref}" title="Buka via SERP" aria-label="Buka via SERP">&#127760;</button>` : ''}
                 <button class="action-icon whitelist-button" data-url="${linkItem.mainLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
                 <span class="whitelist-status"></span>
             </div>

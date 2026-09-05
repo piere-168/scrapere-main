@@ -273,6 +273,7 @@ button:hover {
 .visit-link-button { background-color: #6c757d; font-size: 16px; }
 .visit-link-button[data-variant="main"] { background-color: #0d6efd; }
 .visit-link-button[data-variant="amp"] { background-color: #fd7e14; }
+.visit-link-button[data-variant="serp"] { background-color: #6f42c1; }
 .whitelist-button { background-color: #f0ad4e; }
 
 .manual-links {
