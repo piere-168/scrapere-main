@@ -402,6 +402,7 @@ async function scanPageLinks() {
     }
 
     console.log('Scan link halaman - totalAnchors:', scanResult.totalAnchors, 'filteredOut:', scanResult.filteredOut);
+    console.log('Scan link halaman - domainSummary:', scanResult.domainSummary);
 
     const urlsToSave = [scanResult.pageUrl, ...scanResult.links.map((link) => link.url)];
 

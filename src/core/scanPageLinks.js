@@ -33,8 +33,9 @@ export function scanPageLinksOnPage() {
 
     const ACTION_KEYWORDS = [
         'daftar', 'login', 'masuk', 'register', 'sign in', 'sign up',
-        'whatsapp', 'wa', 'telegram', 'livechat', 'live chat', 'cs',
-        'kontak', 'contact', 'rtp', 'promo',
+        'whatsapp', 'wa me', 'telegram', 'livechat', 'live chat',
+        'kontak', 'contact', 'rtp', 'alternatif', 'link alternatif',
+        'main di', 'klaim', 'bonus', 'deposit', 'promo',
     ];
 
     const matchesActionText = (text) => {
@@ -46,10 +47,27 @@ export function scanPageLinksOnPage() {
         });
     };
 
+    const JUNK_HOSTNAME_PATTERNS = [
+        'cloudfront.net', '-demo.', 'demo-', '.pg-demo', 'spade-event', 'fastspin', 'jlfafafa',
+    ];
+    const JUNK_URL_PATTERNS = ['gameid=', 'playmode=', 'casinoid=', 'clienttype=', '/launcher/'];
+    const JUNK_EXACT_TEXTS = ['coba', 'demo', 'main sekarang', 'play now'];
+
+    const isJunkVendor = (hostname, fullUrl, text) => {
+        const lowerHost = hostname.toLowerCase();
+        if (JUNK_HOSTNAME_PATTERNS.some((p) => lowerHost.includes(p))) return true;
+        const lowerUrl = fullUrl.toLowerCase();
+        if (JUNK_URL_PATTERNS.some((p) => lowerUrl.includes(p))) return true;
+        const lowerText = (text || '').toLowerCase();
+        if (JUNK_EXACT_TEXTS.includes(lowerText)) return true;
+        return false;
+    };
+
     const anchors = Array.from(document.querySelectorAll('a[href]'));
     const totalAnchors = anchors.length;
     const links = [];
     const indexByUrl = new Map();
+    const domainCounts = new Map();
 
     for (const anchor of anchors) {
         const rawHref = anchor.getAttribute('href');
@@ -65,21 +83,25 @@ export function scanPageLinksOnPage() {
         }
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') continue;
 
+        const isInternal = parsedUrl.hostname === window.location.hostname;
+        if (!isInternal) {
+            domainCounts.set(parsedUrl.hostname, (domainCounts.get(parsedUrl.hostname) || 0) + 1);
+        }
+
         const isSamePageFragment =
             parsedUrl.origin === window.location.origin &&
             parsedUrl.pathname === window.location.pathname &&
             parsedUrl.search === window.location.search;
         if (isSamePageFragment) continue;
 
-        const isInternal = parsedUrl.hostname === window.location.hostname;
-        const isExternal = !isInternal;
         const hasImg = Boolean(anchor.querySelector('img'));
         const rawText = normalizeText(anchor.innerText);
-
-        const passesRule = isExternal || matchesActionText(rawText) || (hasImg && isExternal);
-        if (!passesRule) continue;
-
         const url = parsedUrl.href;
+
+        const passesActionOrImg = matchesActionText(rawText) || hasImg;
+        if (!passesActionOrImg) continue;
+        if (isJunkVendor(parsedUrl.hostname, url, rawText)) continue;
+
         const text = truncate(rawText, 80);
         const kind = getKind(anchor);
 
@@ -95,11 +117,16 @@ export function scanPageLinksOnPage() {
         links.push({ url, text, isInternal, kind });
     }
 
+    const domainSummary = Array.from(domainCounts.entries())
+        .map(([hostname, jumlah]) => ({ hostname, jumlah }))
+        .sort((a, b) => b.jumlah - a.jumlah);
+
     return {
         pageUrl: window.location.href,
         pageTitle: document.title,
         links,
         totalAnchors,
         filteredOut: totalAnchors - links.length,
+        domainSummary,
     };
 }
