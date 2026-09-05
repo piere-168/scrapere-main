@@ -43,7 +43,7 @@ function flashBadge(text, color, durationMs) {
 async function saveManualLink(entryId, field, url) {
     const { manualLinks } = await chrome.storage.local.get('manualLinks');
     const current = manualLinks || {};
-    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], ampManual: [] };
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], ampManual: [], pageLinks: [] };
     if (!Array.isArray(entry[field])) entry[field] = [];
     if (!entry[field].includes(url)) {
         entry[field].push(url);

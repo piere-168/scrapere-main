@@ -177,6 +177,7 @@ button:hover {
 #getLinksButton { background-color: #4285F4; }
 #viewWhitelistButton { background-color: #5bc0de; }
 #resetButton { background-color: #d9534f; flex-shrink: 0; }
+#scanPageLinksButton { background-color: #20c997; }
 .copy-button.report { background-color: #f0ad4e; }
 .copy-button.links { background-color: #5cb85c; }
 

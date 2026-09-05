@@ -19,6 +19,7 @@ import {
 } from './src/state/keywordCache.js';
 import { normalizeUrl, extractHostname, hostInSet } from './src/utils/url.js';
 import { scrapeDataOnPage } from './src/core/scraper.js';
+import { scanPageLinksOnPage } from './src/core/scanPageLinks.js';
 import { dom, setLoading, toggleAuthUI, renderResults, setUserEmail } from './src/ui/view.js';
 
 let fullScrapedData = null;
@@ -370,6 +371,54 @@ async function getLinksAndFilter() {
     });
 }
 
+async function scanPageLinks() {
+    if (!activeEntryId) {
+        alert('Pilih dulu entry di daftar hasil sebelum scan.');
+        return;
+    }
+
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab.url && (tab.url.includes('google.com/search') || tab.url.includes('google.co.id/search'))) {
+        alert('Fitur ini untuk halaman situs target, bukan halaman Google.');
+        return;
+    }
+
+    let injectionResults;
+    try {
+        injectionResults = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: scanPageLinksOnPage,
+        });
+    } catch (injectionError) {
+        console.error('Scan link halaman gagal:', injectionError);
+        alert('Gagal mengambil link dari halaman ini.');
+        return;
+    }
+
+    const scanResult = injectionResults?.[0]?.result;
+    if (!scanResult) {
+        alert('Tidak ada data yang bisa diambil dari halaman ini.');
+        return;
+    }
+
+    const urlsToSave = [scanResult.pageUrl, ...scanResult.links.map((link) => link.url)];
+
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[activeEntryId] || { linkButton: [], shortlink: [], linkTujuan: [], ampManual: [], pageLinks: [] };
+    if (!Array.isArray(entry.pageLinks)) entry.pageLinks = [];
+    urlsToSave.forEach((url) => {
+        if (url && !entry.pageLinks.includes(url)) {
+            entry.pageLinks.push(url);
+        }
+    });
+    current[activeEntryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+
+    manualLinksState = current;
+    if (lastRenderedData) showResults(lastRenderedData);
+}
+
 async function whitelistLink(event) {
     const user = auth.currentUser;
     if (!user) return;
@@ -670,6 +719,7 @@ dom.filterInput.addEventListener('input', filterResults);
 dom.loginButton.addEventListener('click', handleLogin);
 dom.logoutButton.addEventListener('click', handleLogout);
 dom.getLinksButton.addEventListener('click', getLinksAndFilter);
+dom.scanPageLinksButton.addEventListener('click', scanPageLinks);
 dom.viewWhitelistButton.addEventListener('click', renderWhitelistManager);
 
 auth.onAuthStateChanged((user) => {

@@ -6,6 +6,7 @@ export const dom = {
     copyLinksButton: document.getElementById('copyLinksButton'),
     searchQueryDisplay: document.getElementById('searchQuery'),
     resetButton: document.getElementById('resetButton'),
+    scanPageLinksButton: document.getElementById('scanPageLinksButton'),
     loginButton: document.getElementById('loginButton'),
     logoutButton: document.getElementById('logoutButton'),
     userInfo: document.getElementById('userInfo'),
@@ -56,6 +57,7 @@ const MANUAL_FIELD_LABELS = {
     shortlink: 'Shortlink',
     linkTujuan: 'Link Tujuan',
     ampManual: 'AMP Manual',
+    pageLinks: 'Link Halaman',
 };
 
 function renderManualLinksSection(entryId, manualEntry) {
