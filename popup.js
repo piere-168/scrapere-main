@@ -401,6 +401,8 @@ async function scanPageLinks() {
         return;
     }
 
+    console.log('Scan link halaman - totalAnchors:', scanResult.totalAnchors, 'filteredOut:', scanResult.filteredOut);
+
     const urlsToSave = [scanResult.pageUrl, ...scanResult.links.map((link) => link.url)];
 
     const { manualLinks } = await chrome.storage.local.get('manualLinks');

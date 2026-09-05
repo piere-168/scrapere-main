@@ -31,7 +31,23 @@ export function scanPageLinksOnPage() {
         return 'link';
     };
 
+    const ACTION_KEYWORDS = [
+        'daftar', 'login', 'masuk', 'register', 'sign in', 'sign up',
+        'whatsapp', 'wa', 'telegram', 'livechat', 'live chat', 'cs',
+        'kontak', 'contact', 'rtp', 'promo',
+    ];
+
+    const matchesActionText = (text) => {
+        if (!text) return false;
+        const lower = text.toLowerCase();
+        return ACTION_KEYWORDS.some((keyword) => {
+            const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
+            return new RegExp(`\\b${escaped}\\b`, 'i').test(lower);
+        });
+    };
+
     const anchors = Array.from(document.querySelectorAll('a[href]'));
+    const totalAnchors = anchors.length;
     const links = [];
     const indexByUrl = new Map();
 
@@ -39,7 +55,7 @@ export function scanPageLinksOnPage() {
         const rawHref = anchor.getAttribute('href');
         if (!rawHref) continue;
         const trimmedHref = rawHref.trim();
-        if (!trimmedHref || trimmedHref.startsWith('#')) continue;
+        if (!trimmedHref) continue;
 
         let parsedUrl;
         try {
@@ -49,9 +65,22 @@ export function scanPageLinksOnPage() {
         }
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') continue;
 
-        const url = parsedUrl.href;
+        const isSamePageFragment =
+            parsedUrl.origin === window.location.origin &&
+            parsedUrl.pathname === window.location.pathname &&
+            parsedUrl.search === window.location.search;
+        if (isSamePageFragment) continue;
+
         const isInternal = parsedUrl.hostname === window.location.hostname;
-        const text = truncate(normalizeText(anchor.innerText), 80);
+        const isExternal = !isInternal;
+        const hasImg = Boolean(anchor.querySelector('img'));
+        const rawText = normalizeText(anchor.innerText);
+
+        const passesRule = isExternal || matchesActionText(rawText) || (hasImg && isExternal);
+        if (!passesRule) continue;
+
+        const url = parsedUrl.href;
+        const text = truncate(rawText, 80);
         const kind = getKind(anchor);
 
         if (indexByUrl.has(url)) {
@@ -70,5 +99,7 @@ export function scanPageLinksOnPage() {
         pageUrl: window.location.href,
         pageTitle: document.title,
         links,
+        totalAnchors,
+        filteredOut: totalAnchors - links.length,
     };
 }
