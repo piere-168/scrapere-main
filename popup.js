@@ -52,6 +52,8 @@ function showResults(data) {
         onWhitelist: whitelistLink,
         onSelectEntry: selectActiveEntry,
         onRemoveManualLink: removeManualLink,
+        onAmpOverrideChange: setAmpOverride,
+        onAssignLink: assignLink,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -78,6 +80,40 @@ async function removeManualLink(entryId, field, url) {
     if (!entry || !Array.isArray(entry[field])) return;
     entry[field] = entry[field].filter((u) => u !== url);
     await chrome.storage.local.set({ manualLinks: current });
+}
+
+async function assignLink(entryId, targetField, url) {
+    if (!entryId || !targetField || !url) return;
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId];
+    if (!entry) return;
+    if (Array.isArray(entry.pageLinks)) {
+        entry.pageLinks = entry.pageLinks.filter((u) => u !== url);
+    }
+    if (!Array.isArray(entry[targetField])) entry[targetField] = [];
+    if (!entry[targetField].includes(url)) {
+        entry[targetField].push(url);
+    }
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
+    showResults(lastRenderedData);
+}
+
+async function setAmpOverride(entryId, value) {
+    if (!entryId) return;
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [] };
+    if (value) {
+        entry.ampOverride = value;
+    } else {
+        delete entry.ampOverride;
+    }
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+    manualLinksState = current;
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -164,13 +200,12 @@ function copyReport() {
                 `Pelaku Phising : ${link.title || 'Tidak ditemukan'}`,
                 `Korban Phising : ${scrapeData.query}`,
                 `Main Link : ${link.mainLink}`,
-                `Link AMP : ${link.ampLink || 'Tidak ditemukan'}`,
+                `Link AMP : ${manual.ampOverride || link.ampLink || 'Tidak ditemukan'}`,
                 `Posisi : Mobile SERP halaman ${link.page}, rank ${link.rank} (urutan ke-${link.rankGlobal})`,
                 `Waktu Cek : ${checkedAt}`,
                 `Link Button : ${joinOrNone(manual.linkButton)}`,
                 `Shortlink : ${joinOrNone(manual.shortlink)}`,
                 `Link Tujuan : ${joinOrNone(manual.linkTujuan)}`,
-                `AMP Manual : ${joinOrNone(manual.ampManual)}`,
                 `Engine : `,
             ].join('\n');
         });

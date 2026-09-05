@@ -56,9 +56,14 @@ const MANUAL_FIELD_LABELS = {
     linkButton: 'Link Button',
     shortlink: 'Shortlink',
     linkTujuan: 'Link Tujuan',
-    ampManual: 'AMP Manual',
-    pageLinks: 'Link Halaman',
+    pageLinks: 'Hasil Scan (belum dipilah)',
 };
+
+const ASSIGNABLE_TARGETS = [
+    { field: 'linkButton', label: 'LB', title: 'Jadikan Link Button' },
+    { field: 'shortlink', label: 'SL', title: 'Jadikan Shortlink' },
+    { field: 'linkTujuan', label: 'LT', title: 'Jadikan Link Tujuan' },
+];
 
 function renderManualLinksSection(entryId, manualEntry) {
     if (!manualEntry) return '';
@@ -67,11 +72,19 @@ function renderManualLinksSection(entryId, manualEntry) {
             const urls = Array.isArray(manualEntry[field]) ? manualEntry[field] : [];
             if (urls.length === 0) return '';
             const chips = urls
-                .map((url) => `
+                .map((url) => {
+                    const assignButtons = field === 'pageLinks'
+                        ? ASSIGNABLE_TARGETS
+                            .map((target) => `<button class="assign-btn" data-target="${target.field}" data-url="${url}" title="${target.title}">${target.label}</button>`)
+                            .join('')
+                        : '';
+                    return `
                     <span class="manual-link-chip">
                         <span class="manual-link-url">${url}</span>
+                        ${assignButtons}
                         <button class="manual-link-remove" data-field="${field}" data-url="${url}" title="Hapus" aria-label="Hapus">&times;</button>
-                    </span>`)
+                    </span>`;
+                })
                 .join('');
             return `
                 <div class="manual-links-group">
@@ -86,7 +99,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -125,6 +138,11 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                     <button class="action-icon whitelist-button" data-url="${linkItem.ampLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
                     <span class="whitelist-status"></span>
                 </div>` : ''}
+            <div class="amp-override-row">
+                <input type="text" class="amp-override-input"
+                       placeholder="Isi AMP manual kalau tersembunyi..."
+                       value="${(manualLinks[linkItem.id] && manualLinks[linkItem.id].ampOverride) || ''}">
+            </div>
             ${renderManualLinksSection(linkItem.id, manualLinks[linkItem.id])}
         `;
         frag.appendChild(wrapper);
@@ -153,10 +171,31 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    if (typeof onAmpOverrideChange === 'function') {
+        dom.resultsDiv.querySelectorAll('.amp-override-input').forEach((input) => {
+            input.addEventListener('change', (event) => {
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                onAmpOverrideChange(entryId, event.target.value.trim());
+            });
+        });
+    }
+    if (typeof onAssignLink === 'function') {
+        dom.resultsDiv.querySelectorAll('.assign-btn').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                onAssignLink(entryId, event.target.dataset.target, event.target.dataset.url);
+            });
+        });
+    }
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });
