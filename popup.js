@@ -613,7 +613,7 @@ async function scanPageLinks() {
     let injectionResults;
     try {
         injectionResults = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            target: { tabId: tab.id, allFrames: true },
             func: scanPageLinksOnPage,
         });
     } catch (injectionError) {
@@ -622,11 +622,47 @@ async function scanPageLinks() {
         return;
     }
 
-    const scanResult = injectionResults?.[0]?.result;
-    if (!scanResult) {
+    const frameResults = (injectionResults || []).filter((entry) => entry && entry.result);
+    if (frameResults.length === 0) {
         alert('Tidak ada data yang bisa diambil dari halaman ini.');
         return;
     }
+
+    const mainFrameEntry = frameResults.find((entry) => entry.frameId === 0) || frameResults[0];
+
+    const scanResult = {
+        pageUrl: mainFrameEntry.result.pageUrl || tab.url,
+        pageTitle: mainFrameEntry.result.pageTitle,
+        links: [],
+        totalAnchors: 0,
+        filteredOut: 0,
+        domainSummary: [],
+    };
+
+    const indexByUrl = new Map();
+    const domainCounts = new Map();
+    for (const entry of frameResults) {
+        const result = entry.result;
+        scanResult.totalAnchors += result.totalAnchors || 0;
+        scanResult.filteredOut += result.filteredOut || 0;
+        (result.links || []).forEach((link) => {
+            if (indexByUrl.has(link.url)) {
+                const existing = scanResult.links[indexByUrl.get(link.url)];
+                if (!existing.text && link.text) {
+                    existing.text = link.text;
+                }
+                return;
+            }
+            indexByUrl.set(link.url, scanResult.links.length);
+            scanResult.links.push({ ...link, frameUrl: result.pageUrl });
+        });
+        (result.domainSummary || []).forEach(({ hostname, jumlah }) => {
+            domainCounts.set(hostname, (domainCounts.get(hostname) || 0) + jumlah);
+        });
+    }
+    scanResult.domainSummary = Array.from(domainCounts.entries())
+        .map(([hostname, jumlah]) => ({ hostname, jumlah }))
+        .sort((a, b) => b.jumlah - a.jumlah);
 
     console.log('Scan link halaman - totalAnchors:', scanResult.totalAnchors, 'filteredOut:', scanResult.filteredOut);
     console.log('Scan link halaman - domainSummary:', scanResult.domainSummary);
