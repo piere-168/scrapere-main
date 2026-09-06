@@ -58,7 +58,7 @@ export async function scrapeDataOnPage() {
         }
     };
 
-    const CONTAINER_SELECTORS = ['#rso', '#main', '#gsr'];
+    const CONTAINER_SELECTORS = ['#center_col', '#rso', '#main', '#gsr'];
 
     const getScopeRoot = () => {
         const roots = CONTAINER_SELECTORS.map((s) => document.querySelector(s)).filter(Boolean);
