@@ -87,9 +87,82 @@ async function handleUpload(entryId, base64) {
     }
 }
 
+const watchedTabs = new Map();
+// tabId -> { entryId, chain: [], timer: null }
+
+async function saveChain(entryId, chain) {
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], pageLinks: [], screenshot: null };
+    entry.redirectChain = [...chain];
+    current[entryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+}
+
+function pushChain(tabId, url) {
+    const watch = watchedTabs.get(tabId);
+    if (!watch) return;
+    if (!url || !/^https?:\/\//i.test(url) || url === 'about:blank') return;
+    if (watch.chain[watch.chain.length - 1] === url) return;
+
+    watch.chain.push(url);
+    saveChain(watch.entryId, watch.chain);
+
+    clearTimeout(watch.timer);
+    watch.timer = setTimeout(() => stopWatch(tabId), 15000);
+}
+
+function stopWatch(tabId) {
+    const watch = watchedTabs.get(tabId);
+    if (!watch) return;
+    clearTimeout(watch.timer);
+    watchedTabs.delete(tabId);
+    flashBadge('REC', '#188038', 1500);
+}
+
+if (chrome.webNavigation.onCommitted) {
+    chrome.webNavigation.onCommitted.addListener((details) => {
+        if (details.frameId !== 0) return;
+        pushChain(details.tabId, details.url);
+    });
+}
+
+if (chrome.webNavigation.onBeforeRedirect) {
+    chrome.webNavigation.onBeforeRedirect.addListener((details) => {
+        if (details.frameId !== 0) return;
+        pushChain(details.tabId, details.redirectUrl);
+    });
+}
+
+if (chrome.webNavigation.onHistoryStateUpdated) {
+    chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+        if (details.frameId !== 0) return;
+        pushChain(details.tabId, details.url);
+    });
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    if (watchedTabs.has(tabId)) stopWatch(tabId);
+});
+
+async function startWatch(entryId, url) {
+    try {
+        const tab = await chrome.tabs.create({ url, active: true });
+        const timer = setTimeout(() => stopWatch(tab.id), 15000);
+        watchedTabs.set(tab.id, { entryId, chain: [], timer });
+        return { ok: true, tabId: tab.id };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg && msg.type === 'uploadScreenshot') {
         handleUpload(msg.entryId, msg.base64).then(sendResponse);
+        return true;
+    }
+    if (msg && msg.type === 'startRedirectWatch') {
+        startWatch(msg.entryId, msg.url).then(sendResponse);
         return true;
     }
 });

@@ -117,7 +117,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta, onScreenshotPick }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta, onScreenshotPick, onRecordRedirect }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -148,9 +148,13 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                 ${linkItem.serpHref ? `<button class="action-icon visit-link-button" data-variant="serp" data-url="${linkItem.serpHref}" title="Buka via SERP" aria-label="Buka via SERP">&#127760;</button>` : ''}
                 <button class="action-icon whitelist-button" data-url="${linkItem.mainLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
                 <button class="action-icon grab-meta-button" data-url="${linkItem.serpHref || linkItem.mainLink}" title="Baca halaman: ambil canonical / AMP otomatis" aria-label="Baca halaman">&#128269;</button>
+                <button class="action-icon record-redirect-button" data-url="${linkItem.serpHref || linkItem.mainLink}" title="Rekam rantai redirect" aria-label="Rekam redirect">&#128308;</button>
                 <span class="whitelist-status"></span>
             </div>
             ${(manualLinks[linkItem.id] && manualLinks[linkItem.id].realUrl && manualLinks[linkItem.id].realUrl !== linkItem.mainLink) ? `<span class="real-url-note">URL asli: ${manualLinks[linkItem.id].realUrl}</span>` : ''}
+            ${(manualLinks[linkItem.id] && Array.isArray(manualLinks[linkItem.id].redirectChain) && manualLinks[linkItem.id].redirectChain.length > 0)
+                ? `<div class="chain-note">${manualLinks[linkItem.id].redirectChain.map((u, i) => `<span class="chain-step">${i + 1}. ${u}</span>`).join('')}</div>`
+                : ''}
             ${linkItem.ampLink ? `
                 <div class="link-row">
                     <span class="link-url">${linkItem.ampLink}</span>
@@ -274,6 +278,17 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    if (typeof onRecordRedirect === 'function') {
+        dom.resultsDiv.querySelectorAll('.record-redirect-button').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                onRecordRedirect(entryId, event.target.dataset.url);
+            });
+        });
+    }
     if (typeof onAssignLink === 'function') {
         dom.resultsDiv.querySelectorAll('.assign-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -309,7 +324,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button, .shot-drop, .shot-file, .shot-link')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button, .record-redirect-button, .shot-drop, .shot-file, .shot-link')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });

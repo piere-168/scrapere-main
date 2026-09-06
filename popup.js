@@ -60,6 +60,7 @@ function showResults(data) {
         onMainOverrideChange: setMainOverride,
         onGrabMeta: grabMeta,
         onScreenshotPick: handleScreenshotPick,
+        onRecordRedirect: recordRedirect,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -225,6 +226,16 @@ async function grabMeta(entryId, url) {
     alert(summary);
 }
 
+async function recordRedirect(entryId, url) {
+    if (!entryId || !url) return;
+    const res = await chrome.runtime.sendMessage({ type: 'startRedirectWatch', entryId, url });
+    if (!res || !res.ok) {
+        alert((res && res.error) || 'Gagal memulai perekaman.');
+        return;
+    }
+    alert('Perekaman dimulai. Tab akan dibiarkan terbuka. Buka lagi popup ini setelah selesai untuk melihat hasilnya.');
+}
+
 async function handleScreenshotPick(entryId, file) {
     if (!file) return;
     const cards = Array.from(dom.resultsDiv.querySelectorAll('.result-item'));
@@ -377,6 +388,9 @@ function copyReport() {
                 `Link Button : ${joinOrNone(manual.linkButton)}`,
                 `Shortlink : ${joinOrNone(manual.shortlink)}`,
                 `Link Tujuan : ${joinOrNone(manual.linkTujuan)}`,
+                ...(Array.isArray(manual.redirectChain) && manual.redirectChain.length > 0
+                    ? [`Rantai Redirect : ${manual.redirectChain.join(' -> ')}`]
+                    : []),
                 `Screenshot : ${manual.screenshot || 'Tidak ditemukan'}`,
                 `Engine : `,
             ].join('\n');
