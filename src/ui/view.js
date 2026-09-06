@@ -117,7 +117,7 @@ function renderManualLinksSection(entryId, manualEntry) {
     return `<div class="manual-links">${groups}</div>`;
 }
 
-export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta, onScreenshotPick, onRecordRedirect }, entryState = {}) {
+export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRemoveManualLink, onAmpOverrideChange, onAssignLink, onClearPageLinks, onMainOverrideChange, onGrabMeta, onScreenshotPick, onRecordRedirect, onFindRedirects }, entryState = {}) {
     const { activeEntryId = null, manualLinks = {} } = entryState;
 
     dom.resultsDiv.innerHTML = '';
@@ -149,6 +149,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
                 <button class="action-icon whitelist-button" data-url="${linkItem.mainLink}" title="Whitelist" aria-label="Whitelist">&#10133;</button>
                 <button class="action-icon grab-meta-button" data-url="${linkItem.serpHref || linkItem.mainLink}" title="Baca halaman: ambil canonical / AMP otomatis" aria-label="Baca halaman">&#128269;</button>
                 <button class="action-icon record-redirect-button" data-url="${linkItem.serpHref || linkItem.mainLink}" title="Rekam rantai redirect" aria-label="Rekam redirect">&#128308;</button>
+                <button class="action-icon find-redirect-button" data-url="${linkItem.serpHref || linkItem.mainLink}" title="Cari URL redirect di source halaman" aria-label="Cari redirect">&#129517;</button>
                 <span class="whitelist-status"></span>
             </div>
             ${(manualLinks[linkItem.id] && manualLinks[linkItem.id].realUrl && manualLinks[linkItem.id].realUrl !== linkItem.mainLink) ? `<span class="real-url-note">URL asli: ${manualLinks[linkItem.id].realUrl}</span>` : ''}
@@ -289,6 +290,24 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
             });
         });
     }
+    if (typeof onFindRedirects === 'function') {
+        dom.resultsDiv.querySelectorAll('.find-redirect-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const card = event.target.closest('.result-item');
+                const entryId = card ? card.dataset.entryId : null;
+                if (!entryId) return;
+                button.classList.add('is-loading');
+                button.disabled = true;
+                try {
+                    await onFindRedirects(entryId, event.target.dataset.url);
+                } finally {
+                    button.classList.remove('is-loading');
+                    button.disabled = false;
+                }
+            });
+        });
+    }
     if (typeof onAssignLink === 'function') {
         dom.resultsDiv.querySelectorAll('.assign-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -324,7 +343,7 @@ export function renderResults(data, { onVisit, onWhitelist, onSelectEntry, onRem
     if (typeof onSelectEntry === 'function') {
         dom.resultsDiv.querySelectorAll('.result-item').forEach((card) => {
             card.addEventListener('click', (event) => {
-                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button, .record-redirect-button, .shot-drop, .shot-file, .shot-link')) return;
+                if (event.target.closest('.action-icon, .manual-link-remove, .assign-btn, .scan-toggle, .scan-clear-all, .grab-meta-button, .record-redirect-button, .find-redirect-button, .shot-drop, .shot-file, .shot-link')) return;
                 if (!card.dataset.entryId) return;
                 onSelectEntry(card.dataset.entryId);
             });

@@ -21,6 +21,7 @@ import { normalizeUrl, extractHostname, hostInSet } from './src/utils/url.js';
 import { scrapeDataOnPage } from './src/core/scraper.js';
 import { scanPageLinksOnPage } from './src/core/scanPageLinks.js';
 import { readPageMetaOnPage } from './src/core/readPageMeta.js';
+import { findRedirectsOnPage } from './src/core/findRedirects.js';
 import { compressImage } from './src/utils/image.js';
 import { dom, setLoading, toggleAuthUI, renderResults, setUserEmail } from './src/ui/view.js';
 
@@ -61,6 +62,7 @@ function showResults(data) {
         onGrabMeta: grabMeta,
         onScreenshotPick: handleScreenshotPick,
         onRecordRedirect: recordRedirect,
+        onFindRedirects: findRedirects,
     }, {
         activeEntryId,
         manualLinks: manualLinksState,
@@ -679,6 +681,90 @@ async function scanPageLinks() {
         }
     });
     current[activeEntryId] = entry;
+    await chrome.storage.local.set({ manualLinks: current });
+
+    manualLinksState = current;
+    if (lastRenderedData) showResults(lastRenderedData);
+}
+
+async function findRedirects(entryId, url) {
+    if (!entryId || !url) return;
+
+    let tabId = null;
+    let injectionResults;
+    try {
+        const tab = await chrome.tabs.create({ url, active: false });
+        tabId = tab.id;
+
+        await new Promise((resolve) => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeoutId);
+                resolve();
+            };
+            const listener = (updatedTabId, changeInfo) => {
+                if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                    finish();
+                }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+            const timeoutId = setTimeout(finish, 20000);
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        injectionResults = await chrome.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            func: findRedirectsOnPage,
+        });
+    } catch (err) {
+        console.error('Gagal mencari redirect di source halaman:', err);
+        alert('Gagal membaca source halaman ini.');
+        return;
+    } finally {
+        if (tabId !== null) {
+            try {
+                await chrome.tabs.remove(tabId);
+            } catch (removeErr) {
+                console.warn('Gagal menutup tab sementara:', removeErr);
+            }
+        }
+    }
+
+    const frameResults = (injectionResults || []).filter((entry) => entry && entry.result);
+    if (frameResults.length === 0) {
+        alert('Tidak ada URL redirect ditemukan di source halaman.');
+        return;
+    }
+
+    const findings = [];
+    const indexByUrl = new Map();
+    for (const entry of frameResults) {
+        (entry.result.findings || []).forEach((finding) => {
+            if (indexByUrl.has(finding.url)) return;
+            indexByUrl.set(finding.url, findings.length);
+            findings.push(finding);
+        });
+    }
+
+    if (findings.length === 0) {
+        alert('Tidak ada URL redirect ditemukan di source halaman.');
+        return;
+    }
+
+    const { manualLinks } = await chrome.storage.local.get('manualLinks');
+    const current = manualLinks || {};
+    const entry = current[entryId] || { linkButton: [], shortlink: [], linkTujuan: [], ampManual: [], pageLinks: [] };
+    if (!Array.isArray(entry.pageLinks)) entry.pageLinks = [];
+    findings.forEach((finding) => {
+        if (finding.url && !entry.pageLinks.includes(finding.url)) {
+            entry.pageLinks.push(finding.url);
+        }
+    });
+    current[entryId] = entry;
     await chrome.storage.local.set({ manualLinks: current });
 
     manualLinksState = current;

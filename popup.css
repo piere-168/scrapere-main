@@ -345,6 +345,7 @@ button:hover {
 .scan-clear-all { display: block; margin-top: 8px; padding: 4px 10px; background-color: #d9534f; color: #fff; border: none; border-radius: 4px; font-size: 10px; cursor: pointer; }
 .grab-meta-button { background-color: #495057; }
 .record-redirect-button { background-color: #dc3545; }
+.find-redirect-button { background-color: #7048e8; }
 .chain-note { margin: 4px 0; padding: 6px 8px; background-color: #fff3cd; border-radius: 4px; }
 .chain-step { display: block; font-size: 10px; font-family: monospace; color: #664d03; word-break: break-all; margin-bottom: 2px; }
 .main-override-input { width: 100%; padding: 5px 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 11px; font-family: monospace; box-sizing: border-box; margin-bottom: 4px; }
