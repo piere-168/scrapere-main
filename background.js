@@ -150,6 +150,7 @@ async function startWatch(entryId, url) {
         const tab = await chrome.tabs.create({ url, active: true });
         const timer = setTimeout(() => stopWatch(tab.id), 15000);
         watchedTabs.set(tab.id, { entryId, chain: [], timer });
+        flashBadge('REC', '#dc3545', 3000);
         return { ok: true, tabId: tab.id };
     } catch (err) {
         return { ok: false, error: err.message };

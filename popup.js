@@ -228,12 +228,18 @@ async function grabMeta(entryId, url) {
 
 async function recordRedirect(entryId, url) {
     if (!entryId || !url) return;
+    const cards = Array.from(dom.resultsDiv.querySelectorAll('.result-item'));
+    const card = cards.find((c) => c.dataset.entryId === entryId);
+    const button = card ? card.querySelector(`.record-redirect-button[data-url="${CSS.escape(url)}"]`) : null;
+
     const res = await chrome.runtime.sendMessage({ type: 'startRedirectWatch', entryId, url });
+
     if (!res || !res.ok) {
-        alert((res && res.error) || 'Gagal memulai perekaman.');
+        console.error((res && res.error) || 'Gagal memulai perekaman.');
         return;
     }
-    alert('Perekaman dimulai. Tab akan dibiarkan terbuka. Buka lagi popup ini setelah selesai untuk melihat hasilnya.');
+
+    if (button) button.textContent = 'Merekam...';
 }
 
 async function handleScreenshotPick(entryId, file) {
